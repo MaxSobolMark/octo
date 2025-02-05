@@ -307,6 +307,16 @@ def add_parl_action_cache(
             lambda: values[idx],
             lambda: default_value,
         )
+        # Now add counterfactual actions
+        key = frame["previous_frame_key"]
+        equality = tf.equal(keys, key)
+        is_key_in_keys = tf.reduce_any(equality)
+        idx = tf.argmax(tf.cast(equality, tf.int32))
+        frame["counterfactual_actions"] = tf.cond(
+            is_key_in_keys,
+            lambda: values[idx],
+            lambda: default_value,
+        )
         return frame
 
     dataset = dataset.frame_map(add_parl_action)
@@ -472,7 +482,7 @@ def make_dataset_from_rlds(
         #         tf.strings.as_string(tf.range(traj_len)),
         #     ]
         # )
-        bridge_specific_key = tf.strings.join(
+        bridge_specific_key_prefix = tf.strings.join(
             [
                 tf.repeat(name, traj_len),
                 traj["traj_metadata"]["episode_metadata"]["file_path"],
@@ -481,10 +491,15 @@ def make_dataset_from_rlds(
                     traj["traj_metadata"]["episode_metadata"]["episode_id"]
                 ),
                 tf.repeat(tf.constant(":"), traj_len),
-                tf.strings.as_string(tf.range(traj_len)),
+                # tf.strings.as_string(tf.range(traj_len)),
             ]
         )
-        frame_key = bridge_specific_key
+        frame_key = tf.strings.join(
+            [bridge_specific_key_prefix, tf.strings.as_string(tf.range(traj_len))]
+        )
+        previous_frame_key = tf.strings.join(
+            [bridge_specific_key_prefix, tf.strings.as_string(tf.range(traj_len - 1))]
+        )
 
         traj_counter.assign_add(1)
 
@@ -519,7 +534,7 @@ def make_dataset_from_rlds(
             "action": tf.cast(traj["action"], tf.float32),
             "dataset_name": tf.repeat(name, traj_len),
             "frame_key": frame_key,
-            "bridge_specific_key": bridge_specific_key,
+            "previous_frame_key": previous_frame_key,
             "reward": reward,
             "td_mask": mask,
             "mc_return": mc_return,
