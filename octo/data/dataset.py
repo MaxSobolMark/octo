@@ -1,3 +1,4 @@
+import os
 from functools import partial
 import json
 from typing import Callable, Mapping, Optional, Sequence, Tuple, Union
@@ -498,7 +499,7 @@ def make_dataset_from_rlds(
             [bridge_specific_key_prefix, tf.strings.as_string(tf.range(traj_len))]
         )
         previous_frame_key = tf.strings.join(
-            [bridge_specific_key_prefix, tf.strings.as_string(tf.range(traj_len - 1))]
+            [bridge_specific_key_prefix, tf.strings.as_string(tf.range(traj_len) - 1)]
         )
 
         traj_counter.assign_add(1)
@@ -547,6 +548,7 @@ def make_dataset_from_rlds(
     def is_nonzero_length(traj):
         return tf.shape(traj["action"])[0] > 0
 
+    # builder = tfds.builder_from_directory(os.path.join(data_dir, name, "0.1.0"))
     builder = tfds.builder(name, data_dir=data_dir)
 
     # load or compute dataset statistics
