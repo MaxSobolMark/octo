@@ -255,6 +255,7 @@ def add_parl_action_cache(
     dataset: dl.DLataset,
     glob_pattern: str,
     normalization_type,
+    dataset_name: str,
     skip_norm: bool = False,
     dataset_statistics: Optional[dict] = None,
     num_parallel_calls: int = tf.data.AUTOTUNE,
@@ -269,17 +270,26 @@ def add_parl_action_cache(
     from glob import glob
 
     action_cache_files = glob(glob_pattern)
+    assert (
+        len(action_cache_files) > 0
+    ), f"No action cache files found with pattern {glob_pattern}"
     action_cache = {}
     none_keys = []  # List to keep track of keys with None values
     for f in action_cache_files:
+        if dataset_name not in f:
+            continue
         with open(f, "rb") as file:
             for key, value in pickle.load(file).items():
+                if not key.startswith(dataset_name):
+                    continue
                 if value is None:
                     none_keys.append(key)  # Track keys with None values
                 else:
                     action_cache[key] = value
 
-    assert len(none_keys) < 25, "Suspicious"
+    assert len(none_keys) < 50, "Suspicious"
+    if len(action_cache) == 0:
+        breakpoint()
 
     # Convert keys and values to tensors
     keys = tf.constant(list(action_cache.keys()), dtype=tf.string)
@@ -426,8 +436,6 @@ def make_dataset_from_rlds(
     """
     REQUIRED_KEYS = {"observation", "action"}
 
-    traj_counter = tf.Variable(0, dtype=tf.int32)
-
     def restructure(traj):
         # apply a standardization function, if provided
         if standardize_fn is not None:
@@ -471,38 +479,47 @@ def make_dataset_from_rlds(
                     "but it must be tf.string."
                 )
 
-        # frame_key = tf.strings.join(
-        #     [
-        #         tf.repeat(name, traj_len),
-        #         tf.repeat(tf.constant("/"), traj_len),
-        #         # train/val
-        #         tf.repeat(tf.constant("train" if train else "val"), traj_len),
-        #         tf.repeat(tf.constant("/"), traj_len),
-        #         tf.repeat(tf.strings.as_string(traj_counter), traj_len),
-        #         tf.repeat(tf.constant("/"), traj_len),
-        #         tf.strings.as_string(tf.range(traj_len)),
-        #     ]
-        # )
-        bridge_specific_key_prefix = tf.strings.join(
-            [
-                tf.repeat(name, traj_len),
-                traj["traj_metadata"]["episode_metadata"]["file_path"],
-                tf.repeat(tf.constant("#"), traj_len),
-                tf.strings.as_string(
-                    traj["traj_metadata"]["episode_metadata"]["episode_id"]
-                ),
-                tf.repeat(tf.constant(":"), traj_len),
-                # tf.strings.as_string(tf.range(traj_len)),
-            ]
-        )
-        frame_key = tf.strings.join(
-            [bridge_specific_key_prefix, tf.strings.as_string(tf.range(traj_len))]
-        )
-        previous_frame_key = tf.strings.join(
-            [bridge_specific_key_prefix, tf.strings.as_string(tf.range(traj_len) - 1)]
-        )
-
-        traj_counter.assign_add(1)
+        if name == "bridge_dataset":
+            bridge_specific_key_prefix = tf.strings.join(
+                [
+                    tf.repeat(name, traj_len),
+                    traj["traj_metadata"]["episode_metadata"]["file_path"],
+                    tf.repeat(tf.constant("#"), traj_len),
+                    tf.strings.as_string(
+                        traj["traj_metadata"]["episode_metadata"]["episode_id"]
+                    ),
+                    tf.repeat(tf.constant(":"), traj_len),
+                ]
+            )
+            frame_key = tf.strings.join(
+                [bridge_specific_key_prefix, tf.strings.as_string(tf.range(traj_len))]
+            )
+            previous_frame_key = tf.strings.join(
+                [
+                    bridge_specific_key_prefix,
+                    tf.strings.as_string(tf.range(traj_len) - 1),
+                ]
+            )
+        else:
+            frame_key_prefix = tf.strings.join(
+                [
+                    tf.repeat(name, traj_len),
+                    tf.repeat(tf.constant("/"), traj_len),
+                    # train/val
+                    tf.repeat(tf.constant("train" if train else "val"), traj_len),
+                    tf.repeat(tf.constant("/"), traj_len),
+                    tf.strings.as_string(
+                        traj["traj_metadata"]["episode_metadata"]["trajectory_id"]
+                    ),
+                    tf.repeat(tf.constant(":"), traj_len),
+                ]
+            )
+            frame_key = tf.strings.join(
+                [frame_key_prefix, tf.strings.as_string(tf.range(traj_len))]
+            )
+            previous_frame_key = tf.strings.join(
+                [frame_key_prefix, tf.strings.as_string(tf.range(traj_len) - 1)]
+            )
 
         # Add reward and mask
         num_final_repeat = 1
@@ -548,8 +565,13 @@ def make_dataset_from_rlds(
     def is_nonzero_length(traj):
         return tf.shape(traj["action"])[0] > 0
 
-    # builder = tfds.builder_from_directory(os.path.join(data_dir, name, "0.1.0"))
-    builder = tfds.builder(name, data_dir=data_dir)
+    # dataset_versions = os.listdir(os.path.join(data_dir, name))
+    dataset_versions = tf.io.gfile.glob(os.path.join(data_dir, name, "*"))
+    assert (
+        len(dataset_versions) == 1
+    ), f"Multiple versions found for dataset {name}: {dataset_versions}"
+    builder = tfds.builder_from_directory(dataset_versions[0])
+    # builder = tfds.builder(name, data_dir=data_dir)
 
     # load or compute dataset statistics
     if isinstance(dataset_statistics, str):
@@ -751,6 +773,7 @@ def make_interleaved_dataset(
                 dataset,
                 parl_action_cache_glob_pattern,
                 normalization_type=dataset_kwargs["action_proprio_normalization_type"],
+                dataset_name=dataset_kwargs["name"],
                 skip_norm=dataset_kwargs.get("skip_norm", False),
                 dataset_statistics=all_dataset_statistics[dataset_kwargs["name"]],
                 num_parallel_calls=threads,

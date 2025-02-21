@@ -95,9 +95,12 @@ def kuka_dataset_transform(trajectory: Dict[str, Any]) -> Dict[str, Any]:
         ),
         axis=-1,
     )
-    trajectory["language_instruction"] = tf.fill(
-        tf.shape(trajectory["observation"]["natural_language_instruction"]), ""
-    )  # delete uninformative language instruction
+    # trajectory["language_instruction"] = tf.fill(
+    #     tf.shape(trajectory["observation"]["natural_language_instruction"]), ""
+    # )  # delete uninformative language instruction
+    trajectory["language_instruction"] = trajectory["observation"][
+        "natural_language_instruction"
+    ]
     return trajectory
 
 
@@ -160,9 +163,12 @@ def berkeley_cable_routing_dataset_transform(
         axis=-1,
     )
     trajectory["observation"]["proprio"] = trajectory["observation"]["robot_state"]
-    trajectory["language_instruction"] = tf.fill(
-        tf.shape(trajectory["observation"]["natural_language_instruction"]), ""
-    )  # delete uninformative language instruction
+    # trajectory["language_instruction"] = tf.fill(
+    #     tf.shape(trajectory["observation"]["natural_language_instruction"]), ""
+    # )  # delete uninformative language instruction
+    trajectory["language_instruction"] = trajectory["observation"][
+        "natural_language_instruction"
+    ]
     return trajectory
 
 
@@ -184,9 +190,12 @@ def roboturk_dataset_transform(trajectory: Dict[str, Any]) -> Dict[str, Any]:
     trajectory["observation"]["proprio"] = tf.zeros(
         (tf.shape(trajectory["action"])[0], 1), dtype=tf.float32
     )
-    trajectory["language_instruction"] = tf.fill(
-        tf.shape(trajectory["observation"]["natural_language_instruction"]), ""
-    )  # delete uninformative language instruction
+    # trajectory["language_instruction"] = tf.fill(
+    #     tf.shape(trajectory["observation"]["natural_language_instruction"]), ""
+    # )  # delete uninformative language instruction
+    trajectory["language_instruction"] = trajectory["observation"][
+        "natural_language_instruction"
+    ]
     return trajectory
 
 
@@ -207,9 +216,12 @@ def nyu_door_opening_dataset_transform(trajectory: Dict[str, Any]) -> Dict[str, 
     trajectory["observation"]["proprio"] = tf.zeros(
         (tf.shape(trajectory["action"])[0], 1), dtype=tf.float32
     )
-    trajectory["language_instruction"] = tf.fill(
-        tf.shape(trajectory["observation"]["natural_language_instruction"]), ""
-    )  # delete uninformative language instruction
+    # trajectory["language_instruction"] = tf.fill(
+    #     tf.shape(trajectory["observation"]["natural_language_instruction"]), ""
+    # )  # delete uninformative language instruction
+    trajectory["language_instruction"] = trajectory["observation"][
+        "natural_language_instruction"
+    ]
     return trajectory
 
 
@@ -234,9 +246,12 @@ def viola_dataset_transform(trajectory: Dict[str, Any]) -> Dict[str, Any]:
         ),
         axis=-1,
     )
-    trajectory["language_instruction"] = tf.fill(
-        tf.shape(trajectory["observation"]["natural_language_instruction"]), ""
-    )  # delete uninformative language instruction
+    # trajectory["language_instruction"] = tf.fill(
+    #     tf.shape(trajectory["observation"]["natural_language_instruction"]), ""
+    # )  # delete uninformative language instruction
+    trajectory["language_instruction"] = trajectory["observation"][
+        "natural_language_instruction"
+    ]
     return trajectory
 
 
@@ -278,9 +293,12 @@ def toto_dataset_transform(trajectory: Dict[str, Any]) -> Dict[str, Any]:
         axis=-1,
     )
     trajectory["observation"]["proprio"] = trajectory["observation"]["state"]
-    trajectory["language_instruction"] = tf.fill(
-        tf.shape(trajectory["observation"]["natural_language_instruction"]), ""
-    )  # delete uninformative language instruction
+    # trajectory["language_instruction"] = tf.fill(
+    #     tf.shape(trajectory["observation"]["natural_language_instruction"]), ""
+    # )  # delete uninformative language instruction
+    trajectory["language_instruction"] = trajectory["observation"][
+        "natural_language_instruction"
+    ]
     return trajectory
 
 
@@ -373,9 +391,9 @@ def stanford_hydra_dataset_transform(trajectory: Dict[str, Any]) -> Dict[str, An
         ),
         axis=-1,
     )
-    trajectory["language_instruction"] = tf.fill(
-        tf.shape(trajectory["language_instruction"]), ""
-    )  # delete uninformative language instruction
+    # trajectory["language_instruction"] = tf.fill(
+    #     tf.shape(trajectory["language_instruction"]), ""
+    # )  # delete uninformative language instruction
     return trajectory
 
 
@@ -391,9 +409,9 @@ def austin_buds_dataset_transform(trajectory: Dict[str, Any]) -> Dict[str, Any]:
         axis=-1,
     )
     trajectory["observation"]["proprio"] = trajectory["observation"]["state"][:, :8]
-    trajectory["language_instruction"] = tf.fill(
-        tf.shape(trajectory["language_instruction"]), ""
-    )  # delete uninformative language instruction
+    # trajectory["language_instruction"] = tf.fill(
+    #     tf.shape(trajectory["language_instruction"]), ""
+    # )  # delete uninformative language instruction
     return trajectory
 
 
@@ -413,9 +431,9 @@ def nyu_franka_play_dataset_transform(trajectory: Dict[str, Any]) -> Dict[str, A
         axis=-1,
     )
     trajectory["observation"]["proprio"] = trajectory["observation"]["state"][:, -6:]
-    trajectory["language_instruction"] = tf.fill(
-        tf.shape(trajectory["language_instruction"]), ""
-    )  # delete uninformative language instruction
+    # trajectory["language_instruction"] = tf.fill(
+    #     tf.shape(trajectory["language_instruction"]), ""
+    # )  # delete uninformative language instruction
     return trajectory
 
 
@@ -496,9 +514,9 @@ def austin_sailor_dataset_transform(trajectory: Dict[str, Any]) -> Dict[str, Any
         axis=-1,
     )
     trajectory["observation"]["proprio"] = trajectory["observation"]["state"]
-    trajectory["language_instruction"] = tf.fill(
-        tf.shape(trajectory["language_instruction"]), ""
-    )  # delete uninformative language instruction
+    # trajectory["language_instruction"] = tf.fill(
+    #     tf.shape(trajectory["language_instruction"]), ""
+    # )  # delete uninformative language instruction
     return trajectory
 
 
@@ -514,9 +532,9 @@ def austin_sirius_dataset_transform(trajectory: Dict[str, Any]) -> Dict[str, Any
         axis=-1,
     )
     trajectory["observation"]["proprio"] = trajectory["observation"]["state"]
-    trajectory["language_instruction"] = tf.fill(
-        tf.shape(trajectory["language_instruction"]), ""
-    )  # delete uninformative language instruction
+    # trajectory["language_instruction"] = tf.fill(
+    #     tf.shape(trajectory["language_instruction"]), ""
+    # )  # delete uninformative language instruction
     return trajectory
 
 
@@ -790,9 +808,9 @@ def utaustin_mutex_dataset_transform(trajectory: Dict[str, Any]) -> Dict[str, An
         axis=-1,
     )
     trajectory["observation"]["proprio"] = trajectory["observation"]["state"][:, :8]
-    trajectory["language_instruction"] = tf.fill(
-        tf.shape(trajectory["language_instruction"]), ""
-    )  # delete uninformative language instruction
+    # trajectory["language_instruction"] = tf.fill(
+    #     tf.shape(trajectory["language_instruction"]), ""
+    # )  # delete uninformative language instruction
     return trajectory
 
 
