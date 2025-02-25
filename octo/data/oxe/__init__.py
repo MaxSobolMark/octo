@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Sequence, Tuple, Union
 from octo.data.oxe.oxe_dataset_configs import ActionEncoding, OXE_DATASET_CONFIGS
 from octo.data.oxe.oxe_dataset_mixes import OXE_NAMED_MIXES
 from octo.data.oxe.oxe_standardization_transforms import OXE_STANDARDIZATION_TRANSFORMS
+from octo.data.oxe.oxe_filter_functions import OXE_FILTER_FUNCTIONS
 from octo.data.utils.data_utils import NormalizationType
 from octo.utils.spec import ModuleSpec
 
@@ -82,9 +83,9 @@ def make_oxe_dataset_kwargs(
     if load_language:
         dataset_kwargs["language_key"] = "language_instruction"
 
-    dataset_kwargs[
-        "action_proprio_normalization_type"
-    ] = action_proprio_normalization_type
+    dataset_kwargs["action_proprio_normalization_type"] = (
+        action_proprio_normalization_type
+    )
 
     del dataset_kwargs["proprio_encoding"]
     del dataset_kwargs["action_encoding"]
@@ -92,6 +93,11 @@ def make_oxe_dataset_kwargs(
     dataset_kwargs["standardize_fn"] = ModuleSpec.create(
         OXE_STANDARDIZATION_TRANSFORMS[name]
     )
+
+    if name in OXE_FILTER_FUNCTIONS:
+        dataset_kwargs["filter_functions"] = (
+            ModuleSpec.create(OXE_FILTER_FUNCTIONS[name]),
+        )
 
     if force_recompute_dataset_statistics:
         dataset_kwargs["force_recompute_dataset_statistics"] = True
