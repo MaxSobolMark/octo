@@ -259,6 +259,7 @@ def add_parl_action_cache(
     skip_norm: bool = False,
     dataset_statistics: Optional[dict] = None,
     num_parallel_calls: int = tf.data.AUTOTUNE,
+    fail_on_missing_cache: bool = True,
 ) -> dl.DLataset:
     """Add cached actions to the dataset.
 
@@ -287,7 +288,7 @@ def add_parl_action_cache(
                 else:
                     action_cache[key] = value
 
-    assert len(none_keys) < 50, "Suspicious"
+    assert len(none_keys) < 20, "Suspicious"
     if len(action_cache) == 0:
         breakpoint()
 
@@ -309,25 +310,40 @@ def add_parl_action_cache(
         default_value = (
             tf.ones_like(values[0]) * -2
         )  # to make it clear that this should not happen.
+
+        # Create a mask for dimensions with non-zero std
+        action_std = dataset_statistics["action"]["std"]
+        nonzero_std_mask = tf.constant(action_std != 0, dtype=tf.float32)
+
+        # For next actions
         key = frame["frame_key"]
         equality = tf.equal(keys, key)
         is_key_in_keys = tf.reduce_any(equality)
+        if fail_on_missing_cache:
+            tf.debugging.Assert(is_key_in_keys, [key])
         idx = tf.argmax(tf.cast(equality, tf.int32))
-        frame["counterfactual_next_actions"] = tf.cond(
+        # Zero out dimensions with zero std
+        actions = tf.cond(
             is_key_in_keys,
-            lambda: values[idx],
+            lambda: values[idx] * nonzero_std_mask,  # Only keep dims with non-zero std
             lambda: default_value,
         )
-        # Now add counterfactual actions
+        frame["counterfactual_next_actions"] = actions
+
+        # For current actions
         key = frame["previous_frame_key"]
         equality = tf.equal(keys, key)
         is_key_in_keys = tf.reduce_any(equality)
+        if fail_on_missing_cache:
+            tf.debugging.Assert(is_key_in_keys, [key])
         idx = tf.argmax(tf.cast(equality, tf.int32))
-        frame["counterfactual_actions"] = tf.cond(
+        # Zero out dimensions with zero std
+        actions = tf.cond(
             is_key_in_keys,
-            lambda: values[idx],
+            lambda: values[idx] * nonzero_std_mask,  # Only keep dims with non-zero std
             lambda: default_value,
         )
+        frame["counterfactual_actions"] = actions
         return frame
 
     dataset = dataset.frame_map(add_parl_action)
@@ -340,6 +356,16 @@ def add_parl_action_cache(
                 normalization_type=normalization_type,
                 # Maps from key in dataset_statistics to key in frame
                 action_key="counterfactual_next_actions",
+            ),
+            num_parallel_calls,
+        )
+        dataset = dataset.traj_map(
+            partial(
+                normalize_action_and_proprio,
+                metadata=dataset_statistics,
+                normalization_type=normalization_type,
+                # Maps from key in dataset_statistics to key in frame
+                action_key="counterfactual_actions",
             ),
             num_parallel_calls,
         )
