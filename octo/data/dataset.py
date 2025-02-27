@@ -84,7 +84,12 @@ def apply_trajectory_transforms(
                 "skip_unlabeled=True but dataset does not have language labels."
             )
         dataset = dataset.filter(
-            lambda x: tf.math.reduce_any(x["task"]["language_instruction"] != "")
+            lambda x: tf.math.reduce_any(
+                tf.strings.regex_full_match(
+                    tf.strings.strip(x["task"]["language_instruction"]),
+                    r".+"
+                )
+            )
         )
 
     if max_action is not None:
